@@ -1,0 +1,20 @@
+# Binaries, models, caches — never commit weights or secrets.
+__pycache__/
+*.pyc
+.venv/
+venv/
+outputs/
+*.bin
+*.safetensors
+*.pt
+*.ckpt
+.env
+HF_TOKEN
+hf_token*
+wandb/
+.DS_Store
+.pytest_cache/
+# Next.js demo
+demo/node_modules/
+demo/.next/
+demo/out/

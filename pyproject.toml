@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tell-4b"
+version = "0.1.0"
+description = "Tell-4B: small specialist decision/classification model (LoRA on a 4B base, MPS-ready)"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+  "torch>=2.2",
+  "transformers>=4.44",
+  "datasets>=2.20",
+  "peft>=0.12",
+  "pyyaml>=6.0",
+  "huggingface_hub>=0.23",
+  "accelerate>=0.33",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

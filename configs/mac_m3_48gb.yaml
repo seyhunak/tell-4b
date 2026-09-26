@@ -1,0 +1,18 @@
+# Tuned defaults for MacBook Pro M3 / 48 GB unified memory (MPS).
+# Override any value from the CLI, e.g.:
+#   python scripts/train.py --config configs/mac_m3_48gb.yaml --epochs 1
+base_model: Qwen/Qwen3.5-4B
+train_file: data/train.jsonl
+valid_file: data/valid.jsonl
+output_dir: outputs/tell-4b
+epochs: 3
+lr: 0.0002
+batch_size: 1
+grad_accum: 16
+max_seq_len: 2048
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+target_modules: q_proj,k_proj,v_proj,o_proj,gate_proj,up_proj,down_proj
+dtype: float32
+seed: 7
