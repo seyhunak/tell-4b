@@ -1,0 +1,3 @@
+# Rendered frames and encoded video are build artifacts, not source.
+build/
+__pycache__/
