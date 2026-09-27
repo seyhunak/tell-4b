@@ -231,6 +231,21 @@ Real gains require the full config plus a larger, real dataset.
 - [ ] Larger licensed/independently-generated dataset + class balancing report.
 - [ ] Calibration: abstain threshold on `invalid_output` + confidence.
 
+## 13. Model card (Hugging Face)
+
+`scripts/push_hf.py` **generates** the Hub model card from the `MODEL_CARD`
+template in that script and writes it to `<adapter>/README.md` before upload.
+
+```bash
+export HF_TOKEN="hf_..."
+python scripts/push_hf.py --adapter outputs/tell-4b --repo-id YOUR_USERNAME/tell-4b
+```
+
+The card is therefore never hand-edited — edit the template in
+`scripts/push_hf.py` and re-run instead, so the published card cannot drift from
+the model it describes. Tokens are read from `HF_TOKEN` only and are never
+committed (see `.gitignore`).
+
 ## License
 
 MIT (see `LICENSE`). This covers the Tell-4B code, configs and synthetic

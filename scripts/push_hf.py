@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Push an Tell-4B adapter (or merged model) to the Hugging Face Hub.
+"""Push a Tell-4B adapter (or merged model) to the Hugging Face Hub.
 
 Usage:
     export HF_TOKEN="hf_..."
