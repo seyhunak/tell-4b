@@ -231,20 +231,71 @@ Real gains require the full config plus a larger, real dataset.
 - [ ] Larger licensed/independently-generated dataset + class balancing report.
 - [ ] Calibration: abstain threshold on `invalid_output` + confidence.
 
-## 13. Model card (Hugging Face)
+## 13. Explainer video
 
-`scripts/push_hf.py` **generates** the Hub model card from the `MODEL_CARD`
-template in that script and writes it to `<adapter>/README.md` before upload.
+A 53-second animated explainer lives at the repo root, rendered entirely from
+source with Pillow — no After Effects, no stock footage, no external assets:
+
+```text
+tell-4b-explainer.mp4   1920x1080, 30 fps, 52.8 s, H.264
+tell-4b-thumb.png       1280x720 thumbnail
+```
+
+Rebuild it with `python3 media/build_video.py` (requires `pillow` and
+`ffmpeg`). The renderer, scene sources and full build notes are in
+[`media/`](media/README.md).
+
+Every figure shown on screen comes from this repo: ticket text and expected
+labels are copied verbatim from `demo/lib/tickets.ts`, the 50/50 demo result was
+measured by replaying all 50 tickets through the live `/api/classify` endpoint,
+and the 96.7% / 98.3% test numbers are the ones in section 11. The video states
+plainly that the base model scores higher on this dataset.
+
+## 14. Published artifacts
+
+### Hugging Face — live
+
+The LoRA adapter is published at **[seyhunak/tell-4b](https://huggingface.co/seyhunak/tell-4b)**
+(85 MB adapter + tokenizer + generated model card).
 
 ```bash
 export HF_TOKEN="hf_..."
 python scripts/push_hf.py --adapter outputs/tell-4b --repo-id YOUR_USERNAME/tell-4b
 ```
 
-The card is therefore never hand-edited — edit the template in
-`scripts/push_hf.py` and re-run instead, so the published card cannot drift from
-the model it describes. Tokens are read from `HF_TOKEN` only and are never
-committed (see `.gitignore`).
+`scripts/push_hf.py` **generates** the Hub model card from the `MODEL_CARD`
+template in that script and writes it to `<adapter>/README.md` before upload. The
+card is therefore never hand-edited — edit the template in `scripts/push_hf.py`
+and re-run instead, so the published card cannot drift from the model it
+describes. Tokens are read from `HF_TOKEN` only and are never committed.
+
+### Ollama — local build
+
+The merged Q4_K_M GGUF (2.7 GB) is built locally and loaded via the `Modelfile`:
+
+```bash
+ollama create seyhunak/tell-4b -f Modelfile
+ollama run seyhunak/tell-4b "STATE: ... QUESTION: ... OPTIONS: ... ANSWER:"
+```
+
+Requires `outputs/tell-4b-q4_k_m.gguf` (a gitignored build artifact) — see the
+`Modelfile` header for the full `merge_adapter.py` → `convert_hf_to_gguf.py` →
+`llama-quantize` chain.
+
+> **Thinking mode.** The Qwen3.5-4B base ships a reasoning template, so the
+> merged model will narrate a `Thinking Process:` block before the label when
+> driven through the raw `/api/generate` endpoint. The decision itself is still
+> correct. Use the chat endpoint with thinking disabled for the label-only
+> contract:
+>
+> ```bash
+> curl http://localhost:11434/api/chat -d '{"model":"seyhunak/tell-4b",
+>   "messages":[{"role":"user","content":"STATE: ... QUESTION: ... OPTIONS: ..."}],
+>   "think":false,"stream":false}'
+> ```
+>
+> Verified 5/5 on match / mismatch / tolerance / injection / unlinked tickets
+> through that path, each returning a single letter with no reasoning tokens.
 
 ## License
 
