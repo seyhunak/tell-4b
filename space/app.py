@@ -177,6 +177,24 @@ _TOKENIZER = None
 _MODEL = None
 
 
+def _load_adapter(base_model, repo_id: str):
+    """Apply a LoRA adapter, pinned to CPU for the weight read.
+
+    peft's `load_adapter` resolves its device with `infer_device()`, which returns
+    "cuda" whenever `torch.cuda.is_available()` is true. On ZeroGPU that is true at
+    import time (CUDA emulation), so the adapter safetensors get read straight onto
+    a GPU that does not exist yet and the Space dies with "No CUDA GPUs are
+    available". `load_adapter` accepts an explicit `torch_device`, and
+    `from_pretrained` forwards it through **kwargs, so pass "cpu" and let the
+    module-level `.to(DEVICE)` place everything afterwards.
+    """
+    try:
+        return PeftModel.from_pretrained(base_model, repo_id, torch_device="cpu")
+    except TypeError:  # older peft without torch_device; correct on non-ZeroGPU
+        print("[tell] peft has no torch_device arg; falling back to default device")
+        return PeftModel.from_pretrained(base_model, repo_id)
+
+
 def load_model():
     """Load Tell once and place it on the device at module level (ZeroGPU-safe)."""
     global _TOKENIZER, _MODEL
@@ -197,7 +215,7 @@ def load_model():
         print(f"[tell] {MODEL_ID} is a LoRA adapter; loading base {BASE_MODEL} first")
         model = _from_pretrained(BASE_MODEL)
         print("[tell] applying adapter")
-        model = PeftModel.from_pretrained(model, MODEL_ID)
+        model = _load_adapter(model, MODEL_ID)
 
     if DROP_VISION and DEVICE == "cuda":
         print(f"[tell] vision tower dropped: {_strip_vision(model) or 'nothing found'}")
