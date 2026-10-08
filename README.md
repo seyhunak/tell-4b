@@ -201,17 +201,56 @@ Verified 50/50 correct, 0 invalid through the live HTTP path. See
 `demo/README.md`. The demo engine is a deterministic mirror of the decision
 contract; production inference with real weights is `scripts/inference.py`.
 
-## 10. Layout
+## 10. Gradio Space (ZeroGPU)
+
+`space/` is a deployable Hugging Face Space: **Decide** (single question +
+probability bars), **Batch** (one question, many states), **Raw JSON** (same
+engine over HTTP), **About**.
+
+```bash
+export HF_TOKEN="hf_..."
+python scripts/deploy_space.py                     # -> seyhunak/tell-4b-demo
+python scripts/deploy_space.py --space-id you/tell # -> custom Space
+python scripts/deploy_space.py --dry-run           # list files, touch nothing
+```
+
+Then, once: **Space → Settings → Hardware → ZeroGPU → Save**. Hardware cannot be
+set through the public API.
+
+The Space imports `src/tell/prompt.py` rather than copying it, so the prompt it
+renders is provably the one training and `pytest` use — `tests/test_space.py`
+asserts exactly that, plus the scoring window arithmetic.
+
+**How the Space answers.** It does not generate text and regex it. It runs one
+batched teacher-forced forward pass over `prompt + label` per option, sums the
+log-probability of the label tokens, and renormalises across your option set
+(`logits_to_keep` keeps the logit tensor to a couple of positions instead of
+materialising `batch × width × 150k vocab`). Consequences:
+
+- the returned label is **always** one of the options supplied — there is no
+  "invented a category" failure mode;
+- the probability is a real score over the option set.
+
+Two ZeroGPU details that are easy to get wrong, both documented in
+`space/app.py`:
+
+- weights go on `cuda` at **module level**, not inside the function. Outside
+  `@spaces.GPU`, torch runs in CUDA emulation mode; moving weights inside the
+  call is explicitly discouraged because transfers are optimised for startup.
+- `spaces` must be imported **before** torch.
+
+## 11. Layout
 
 ```text
 tell-4b/README.md  configs/mac_m3_48gb.yaml  data/*.jsonl
 scripts/{make_dataset,validate_dataset,train,evaluate,inference,merge_adapter,push_hf}.py
-scripts/publish_github.sh  src/tell/{prompt,inference,evaluation}.py
-tests/{test_dataset,test_prompt}.py
+scripts/{deploy_space,publish_github.sh}  src/tell/{prompt,inference,evaluation}.py
+tests/{test_dataset,test_prompt,test_space}.py
 demo/{app,lib,bin}  (Next.js live demo, see demo/README.md)
+space/{app.py,README.md,requirements.txt}  (Gradio Space source)
 ```
 
-## 11. Verified smoke-run results (M3, MPS)
+## 12. Verified smoke-run results (M3, MPS)
 
 Measured on 2026-09-25 — smoke config only (100 train samples, 1 epoch).
 Not a quality claim; shown to prove the pipeline works end to end.
@@ -224,14 +263,14 @@ Not a quality claim; shown to prove the pipeline works end to end.
 On this tiny synthetic set the base model is already strong — expected.
 Real gains require the full config plus a larger, real dataset.
 
-## 12. TODO
+## 13. TODO
 
 - [ ] Exact answer-span masking via offset mapping (current: prompt re-tokenize approx).
 - [ ] CUDA path: bf16 + optional 4-bit (`bitsandbytes`) behind a flag.
 - [ ] Larger licensed/independently-generated dataset + class balancing report.
 - [ ] Calibration: abstain threshold on `invalid_output` + confidence.
 
-## 13. Explainer video
+## 14. Explainer video
 
 A 53-second animated explainer lives at the repo root, rendered entirely from
 source with Pillow — no After Effects, no stock footage, no external assets:
@@ -251,7 +290,7 @@ measured by replaying all 50 tickets through the live `/api/classify` endpoint,
 and the 96.7% / 98.3% test numbers are the ones in section 11. The video states
 plainly that the base model scores higher on this dataset.
 
-## 14. Published artifacts
+## 15. Published artifacts
 
 ### Hugging Face — live
 
@@ -268,6 +307,12 @@ template in that script and writes it to `<adapter>/README.md` before upload. Th
 card is therefore never hand-edited — edit the template in `scripts/push_hf.py`
 and re-run instead, so the published card cannot drift from the model it
 describes. Tokens are read from `HF_TOKEN` only and are never committed.
+
+### Gradio Space
+
+Source lives in `space/`, deployed with `scripts/deploy_space.py` — see §10. The
+published Space pulls `seyhunak/tell-4b` plus its `Qwen/Qwen3.5-4B` base at
+startup, so nothing extra is uploaded to the model repo.
 
 ### Ollama — local build
 

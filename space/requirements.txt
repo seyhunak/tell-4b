@@ -1,0 +1,12 @@
+# Tell-4B Space dependencies.
+#
+# gradio itself is installed by the Spaces runtime from `sdk_version` in README.md;
+# it is pinned here too so a local `pip install -r space/requirements.txt` matches.
+gradio>=6.29,<7
+spaces>=0.51
+# ZeroGPU supports torch 2.8.0 - 2.13.x on the current runtime.
+torch>=2.8
+transformers>=5.19
+peft>=0.21
+huggingface_hub>=0.34
+accelerate>=1.0
